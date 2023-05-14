@@ -1,95 +1,48 @@
 #!/usr/bin/python3
-"""Module for FileStorage class."""
-import datetime
+"""This is the File Storage module."""
 import json
-import os
+from models.base_model import BaseModel
+from models.user import User
+from models.state import State
+from models.city import City
+from models.place import Place
+from models.amenity import Amenity
+from models.review import Review
 
 
 class FileStorage:
-
-    """Class for storing and retrieving data"""
-    __file_path = "file.json"
+    """The file storage class """
+    __file_path = 'file.json'
     __objects = {}
 
     def all(self):
-        """returns the dictionary __objects"""
-        return FileStorage.__objects
+        """return the __objects"""
+        return (self.__objects)
 
     def new(self, obj):
-        """sets in __objects the obj with key <obj class name>.id"""
-        key = "{}.{}".format(type(obj).__name__, obj.id)
-        FileStorage.__objects[key] = obj
+        """
+          sets in __objects the obj with key
+          <obj class name>.id
+        """
+        self.__objects["{}.{}".format(type(obj).__name__, obj.id)] = obj
 
     def save(self):
-        """ serializes __objects to the JSON file (path: __file_path)"""
-        with open(FileStorage.__file_path, "w", encoding="utf-8") as f:
-            d = {k: v.to_dict() for k, v in FileStorage.__objects.items()}
-            json.dump(d, f)
-
-    def classes(self):
-        """Returns a dictionary of valid classes and their references"""
-        from models.base_model import BaseModel
-        from models.user import User
-        from models.state import State
-        from models.city import City
-        from models.amenity import Amenity
-        from models.place import Place
-        from models.review import Review
-
-        classes = {"BaseModel": BaseModel,
-                   "User": User,
-                   "State": State,
-                   "City": City,
-                   "Amenity": Amenity,
-                   "Place": Place,
-                   "Review": Review}
-        return classes
+        """
+           serializes __objects to the JSON file (path: __file_path)
+        """
+        with open(self.__file_path, 'w') as s_file:
+            dict_form = {}
+            for k, v in self.__objects.items():
+                dict_form[k] = v.to_dict()
+            json.dump(dict_form, s_file)
 
     def reload(self):
-        """Reloads the stored objects"""
-        if not os.path.isfile(FileStorage.__file_path):
+        """
+          deserializes the JSON file to __objects
+        """
+        try:
+            with open(self.__file_path, 'r') as r_file:
+                for obj in json.load(r_file).values():
+                    self.new(eval(obj["__class__"])(**obj))
+        except FileNotFoundError:
             return
-        with open(FileStorage.__file_path, "r", encoding="utf-8") as f:
-            obj_dict = json.load(f)
-            obj_dict = {k: self.classes()[v["__class__"]](**v)
-                        for k, v in obj_dict.items()}
-            # TODO: should this overwrite or insert?
-            FileStorage.__objects = obj_dict
-
-    def attributes(self):
-        """Returns the valid attributes and their types for classname"""
-        attributes = {
-            "BaseModel":
-                     {"id": str,
-                      "created_at": datetime.datetime,
-                      "updated_at": datetime.datetime},
-            "User":
-                     {"email": str,
-                      "password": str,
-                      "first_name": str,
-                      "last_name": str},
-            "State":
-                     {"name": str},
-            "City":
-                     {"state_id": str,
-                      "name": str},
-            "Amenity":
-                     {"name": str},
-            "Place":
-                     {"city_id": str,
-                      "user_id": str,
-                      "name": str,
-                      "description": str,
-                      "number_rooms": int,
-                      "number_bathrooms": int,
-                      "max_guest": int,
-                      "price_by_night": int,
-                      "latitude": float,
-                      "longitude": float,
-                      "amenity_ids": list},
-            "Review":
-            {"place_id": str,
-                         "user_id": str,
-                         "text": str}
-        }
-        return attributes
